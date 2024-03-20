@@ -1,9 +1,11 @@
 Package: com.mtac.prefs.localizer
 Name: PreferenceLocalizer
-Version: 1.0
+Version: 1.1
 Architecture: iphoneos-arm
-Description: Change language of Settings app
+Description: Quickly change language of Settings app
 Maintainer: MTAC
 Author: MTAC
 Section: Tweaks
 Depends: mobilesubstrate (>= 0.9.5000)
+Icon: https://mtac.app/repo/assets/com.mtac.prefs.localizer/icon-rounded.png
+SileoDepiction: https://mtac.app/repo/depiction/native/com.mtac.prefs.localizer.json
