@@ -1,5 +1,7 @@
 # PreferenceLocalizer
 
+Available on [mtac.app](https://mtac.app/repo)
+
 ```objective-c
 #import <UIKit/UIKit.h>
 #import <Preferences/PSListController.h>
