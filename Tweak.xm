@@ -37,46 +37,47 @@ void setApplicationLanguage(NSString *languageCode) {
 	[[UIApplication sharedApplication] performSelector:@selector(suspend) withObject:nil afterDelay:0]; // Suspend Settings
 }
 
+NSArray *languageList() {
+	NSFileManager *manager = [NSFileManager defaultManager];
+	NSArray *settingsContent = [manager contentsOfDirectoryAtPath:@"/Applications/Preferences.app" error:nil];
+	NSMutableArray *languageList = [NSMutableArray new];
+	for (NSString *item in settingsContent) {
+		if ([item.pathExtension isEqualToString:@"lproj"]) {
+			[languageList addObject:[item stringByDeletingPathExtension]];
+		}
+	}
+	return [languageList sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)];
+}
+
 %group Preferences
 %hook UINavigationBar
 - (void)didMoveToWindow {
 	%orig;
 	UIContextMenuInteraction *menuInteraction = [[UIContextMenuInteraction alloc] initWithDelegate:self];
 	[self addInteraction:menuInteraction]; // Add interaction to all navigation bars
+	NSLog(@"[+] PL DEBUG: List -> %@", languageList());
 }
 %new
 - (UIContextMenuConfiguration *)contextMenuInteraction:(UIContextMenuInteraction *)interaction configurationForMenuAtLocation:(CGPoint)location {
     UIContextMenuConfiguration *config = [UIContextMenuConfiguration configurationWithIdentifier:nil previewProvider:nil actionProvider:^UIMenu* _Nullable(NSArray<UIMenuElement*>* _Nonnull suggestedActions) {
-        UIAction *setAction = [UIAction actionWithTitle:@"Set Language" image:[UIImage systemImageNamed:@"globe"] identifier:nil handler:^(__kindof UIAction *_Nonnull action) {
-			UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"" message:@"" preferredStyle:UIAlertControllerStyleAlert];
-			[alertController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-				textField.placeholder = @"Enter language code";
-				textField.secureTextEntry = NO;
+        NSLocale *locale = [NSLocale autoupdatingCurrentLocale];
+		NSMutableArray *languages = [NSMutableArray new];
+		for (NSString *language in languageList()) {
+			NSString *languageDisplayName = [locale localizedStringForLanguageCode:language];
+			UIAction *languageAction = [UIAction actionWithTitle:[NSString stringWithFormat:@"%@ • %@", languageDisplayName, language] image:nil identifier:nil handler:^(__kindof UIAction *_Nonnull action) {
+				setApplicationLanguage(language); 
 			}];
-			[alertController addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
-			[alertController addAction:[UIAlertAction actionWithTitle:@"Apply" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-				UITextField *textLabel = alertController.textFields.firstObject;
-				setApplicationLanguage(textLabel.text); 
-			}]];
-			[alertController addAction:[UIAlertAction actionWithTitle:@"View Language Codes" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-				[[NSBundle bundleWithPath:ROOT_PATH_NS(@"/System/Library/Frameworks/SafariServices.framework")] load];
-				if ([SFSafariViewController class] != nil) {
-					SFSafariViewController *safariView = [[SFSafariViewController alloc] initWithURL:[NSURL URLWithString:@"https://www.loc.gov/standards/iso639-2/php/English_list.php"]];
-					if ([safariView respondsToSelector:@selector(setPreferredControlTintColor:)]) {
-						safariView.preferredControlTintColor = [UIColor systemBlueColor];
-					}
-					[[self _viewControllerForAncestor] presentViewController:safariView animated:YES completion:nil];
-				}
-			}]];
-			[[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alertController animated:YES completion:nil];
-        }];
+			[languages addObject:languageAction];
+		}
+		
+		UIMenu *languageList = [UIMenu menuWithTitle:@"Set Language" image:[UIImage systemImageNamed:@"globe"] identifier:nil options:0 children:languages];
 
 		UIAction *resetAction = [UIAction actionWithTitle:@"Reset" image:[UIImage systemImageNamed:@"arrow.clockwise.circle.fill"] identifier:nil handler:^(__kindof UIAction *_Nonnull action) {
 			setApplicationLanguage(nil);
         }];
 		resetAction.attributes = UIMenuElementAttributesDestructive;
 
-        UIMenu *menu = [UIMenu menuWithTitle:@"" children:@[setAction, resetAction]];
+        UIMenu *menu = [UIMenu menuWithTitle:@"" children:@[languageList, resetAction]];
         return menu;
     }];
     return config;
