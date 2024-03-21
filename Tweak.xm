@@ -62,11 +62,13 @@ NSArray *languageList() {
     UIContextMenuConfiguration *config = [UIContextMenuConfiguration configurationWithIdentifier:nil previewProvider:nil actionProvider:^UIMenu* _Nullable(NSArray<UIMenuElement*>* _Nonnull suggestedActions) {
         NSLocale *locale = [NSLocale autoupdatingCurrentLocale];
 		NSMutableArray *languages = [NSMutableArray new];
+		NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 		for (NSString *language in languageList()) {
 			NSString *languageDisplayName = [locale localizedStringForLanguageCode:language];
 			UIAction *languageAction = [UIAction actionWithTitle:[NSString stringWithFormat:@"%@ • %@", languageDisplayName, language] image:nil identifier:nil handler:^(__kindof UIAction *_Nonnull action) {
 				setApplicationLanguage(language); 
 			}];
+			languageAction.state = [[((NSArray *)[defaults objectForKey:@"AppleLanguages"]) firstObject] isEqualToString:language] || [language isEqualToString:[[[NSBundle mainBundle] preferredLocalizations] firstObject]];
 			[languages addObject:languageAction];
 		}
 		
